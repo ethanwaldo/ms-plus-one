@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MS+1 &gt; OS</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { font: 15px/1.45 "Segoe UI", system-ui, sans-serif; background: #161513; color: #e7e2d8; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  .controls { position: fixed; z-index: 8; top: 20px; left: 20px; display: flex; gap: 8px; }
+  .controls[hidden] { display: none; }
+  .controls button, #back {
+    padding: 10px 16px; border-radius: 999px; border: 1px solid rgba(231, 226, 216, 0.16);
+    background: #161513; color: #e7e2d8; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  }
+  .controls button:hover, #back:hover { border-color: rgba(231, 226, 216, 0.45); }
+  #back { position: fixed; z-index: 8; top: 20px; left: 20px; }
+  body.board-view { overflow-x: auto; overflow-y: hidden; }
+  main { min-height: 100%; padding: 76px 28px 48px 28px; }
+  body.board-view main {
+    height: 100vh; min-height: 0; min-width: max-content;
+    padding: 100px 312px 16px 24px; display: flex; align-items: center;
+  }
+  h2 { margin: 0 0 4px; font-size: 28px; font-weight: 650; }
+  .muted { color: #9c978e; }
+  .identity { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
+  .face { width: 72px; height: 72px; border-radius: 50%; position: relative; overflow: hidden; background: #2a2723; flex: none; }
+  .face img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .face .letter { position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%); width: 20px; height: 20px; border-radius: 50%; background: #1c1915; color: #fff; font-size: 12px; font-weight: 700; display: grid; place-items: center; }
+  .sheet { max-width: 760px; }
+  ul.compare { list-style: none; margin: 18px 0 8px; padding: 0; max-width: 460px; }
+  ul.compare li { display: grid; grid-template-columns: 150px 110px 110px; gap: 8px; padding: 7px 0; border-top: 1px solid rgba(231, 226, 216, 0.1); font-size: 14px; }
+  ul.compare .miss { color: #9c978e; grid-column: 2 / -1; }
+  ul.gear { margin: 22px 0 0; padding: 0; list-style: none; columns: 2; max-width: 720px; }
+  ul.gear li { margin: 0; padding: 5px 16px 5px 0; break-inside: avoid; font-size: 14px; }
+  .board { width: max-content; }
+  .board-heads { display: flex; margin: 0 0 10px 8px; }
+  .round-title { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #9c978e; white-space: nowrap; }
+  .round-title span { cursor: help; border-bottom: 1px dotted rgba(156, 151, 142, 0.6); }
+  .round-title span:hover { color: #e7e2d8; }
+  #hover.head { max-width: 320px; }
+  #hover.head p { margin: 0 0 6px; }
+  #hover.head p:last-child { margin: 0; }
+  .pitch { position: relative; }
+  .pitch svg { position: absolute; inset: 0; overflow: visible; }
+  .pitch svg path { fill: none; stroke-width: 2; }
+  button.who { padding: 0; border-radius: 50%; border: 2px solid transparent; position: absolute; overflow: hidden; background: #2a2723; }
+  button.who img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+  button.who .letter { position: absolute; left: 50%; bottom: 2px; transform: translateX(-50%); width: 16px; height: 16px; border-radius: 50%; background: #1c1915; color: #fff; font-size: 10px; font-weight: 700; display: grid; place-items: center; }
+  button.who.out { opacity: 0.32; }
+  button.who.os { opacity: 0.7; border: 2px dashed rgba(231, 226, 216, 0.6); }
+  #tally { position: fixed; z-index: 8; top: 68px; left: 22px; font-size: 13px; color: #9c978e; }
+  #tally[hidden] { display: none; }
+  #tally strong { color: #e7e2d8; font-weight: 600; }
+  #hover {
+    position: fixed; z-index: 7; pointer-events: none; background: #161513; color: #e7e2d8;
+    border: 1px solid rgba(231, 226, 216, 0.16); border-radius: 8px; padding: 8px 10px;
+    font-size: 13px; line-height: 1.35; max-width: 280px; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  }
+  #tip {
+    position: fixed; top: 20px; right: 20px; width: 280px; background: rgba(22, 21, 19, 0.5); color: #e7e2d8;
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(231, 226, 216, 0.14); border-radius: 12px; padding: 14px 16px 12px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  }
+  .tip-head { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+  .tip-head img { width: 44px; height: 44px; border-radius: 6px; background: #0e0d0c; flex: none; }
+  #tip h3 { margin: 0; font-size: 16px; font-weight: 650; line-height: 1.25; }
+  #tip .meta { margin: 3px 0 0; color: #9c978e; font-size: 12px; }
+  #tip ul.stats { list-style: none; margin: 0; padding: 0; }
+  #tip ul.stats li { margin: 0; padding: 1px 0; font-size: 14px; line-height: 1.45; color: #d5d0c6; }
+</style>
+</head>
+<body>
+<div class="controls">
+  <button id="roll" type="button">Random gear</button>
+  <button id="drop-btn" type="button">Random item</button>
+</div>
+<div id="tally" hidden></div>
+<main>
+  <section id="result"><p class="muted">Loading the item log…</p></section>
+</main>
+<aside id="tip" hidden></aside>
+<div id="hover" hidden></div>
+<script>
+const ICON = "https://wow.zamimg.com/images/wow/icons/large/";
+const SPEC_ICON = {
+  priest_discipline: "spell_holy_powerwordshield",
+  druid_restoration: "spell_nature_healingtouch",
+  warrior_protection: "ability_warrior_defensivestance",
+  paladin_protection: "spell_holy_devotionaura",
+  hunter_marksmanship: "ability_marksmanship",
+  hunter_survival: "ability_hunter_swiftstrike",
+  mage_arcane: "spell_holy_magicalsentry",
+  warlock_ds_ruin: "spell_shadow_shadowbolt",
+  shaman_stormcaller: "spell_nature_lightning"
+};
+const CLASS_OF = {
+  ethan: "priest", jamie: "druid", jake: "warrior", wilder: "paladin",
+  izzy: "hunter", matt: "hunter", emma: "mage", trevor: "warlock", kyle: "shaman"
+};
+const CLASS_COLOR = {
+  priest: "#FFFFFF", druid: "#FF7C0A", warrior: "#C69B6D", paladin: "#F48CBA",
+  hunter: "#AAD372", mage: "#3FC7EB", warlock: "#8788EE", shaman: "#0070DD"
+};
+function darker(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const scale = 0.45;
+  const channels = [n >> 16, n >> 8, n].map(channel => Math.round((channel & 255) * scale).toString(16).padStart(2, "0"));
+  return `#${channels.join("")}`;
+}
+const ARMOR = {
+  priest: ["cloth"], mage: ["cloth"], warlock: ["cloth"],
+  druid: ["cloth", "leather"],
+  hunter: ["cloth", "leather", "mail"], shaman: ["cloth", "leather", "mail"],
+  warrior: ["cloth", "leather", "mail", "plate"], paladin: ["cloth", "leather", "mail", "plate"]
+};
+const WEAPONS = {
+  priest: ["staff", "mace", "dagger", "wand"],
+  mage: ["sword", "staff", "dagger", "wand", "offhand"],
+  warlock: ["sword", "staff", "dagger", "wand", "offhand"],
+  druid: ["staff", "mace", "dagger", "fist", "polearm", "offhand"],
+  hunter: ["sword", "axe", "polearm", "staff", "dagger", "fist", "bow", "gun", "crossbow"],
+  shaman: ["mace", "axe", "dagger", "staff", "fist", "shield", "offhand"],
+  warrior: ["sword", "axe", "mace", "polearm", "staff", "fist", "bow", "gun", "crossbow", "shield"],
+  paladin: ["sword", "mace", "polearm", "shield"]
+};
+const RANGED = {
+  hunter: ["bow", "crossbow", "gun", "thrown"],
+  warrior: ["bow", "crossbow", "gun", "thrown"],
+  priest: ["wand"], mage: ["wand"], warlock: ["wand"],
+  druid: ["idol"], paladin: ["libram"], shaman: ["totem"]
+};
+const ALIAS = {
+  strength: ["Strength"], agility: ["Agility"], stamina: ["Stamina"], intellect: ["Intellect"],
+  spirit: ["Spirit"], attackPower: ["Attack power"], rangedAttackPower: ["Ranged attack power"],
+  feralAttackPower: ["Feral attack power"], spellDamage: ["Spell damage"], healing: ["Healing power"],
+  fire: ["Fire damage"], nature: ["Nature damage"], shadow: ["Shadow damage"], arcane: ["Arcane damage"],
+  holy: ["Holy damage"], frost: ["Frost damage"], spellPenetration: ["Spell penetration"],
+  mp5: ["Mana per 5 s"], hit: ["Hit", "Spell hit", "Ranged hit"],
+  crit: ["Crit", "Spell crit", "Ranged crit"], haste: ["Attack speed", "Casting speed"],
+  expertise: ["Expertise"], armorPenetration: ["Armor penetration"],
+  blockValue: ["Block value"], block: ["Block"], defense: ["Defense"],
+  dodge: ["Dodge"], parry: ["Parry"], armor: ["Armor"]
+};
+const STAT_LABEL = {
+  strength: "Strength", agility: "Agility", stamina: "Stamina", intellect: "Intellect", spirit: "Spirit",
+  attackPower: "Attack power", rangedAttackPower: "Ranged attack power", feralAttackPower: "Feral attack power",
+  spellDamage: "Spell damage", healing: "Healing", fire: "Fire damage", nature: "Nature damage",
+  shadow: "Shadow damage", arcane: "Arcane damage", holy: "Holy damage", frost: "Frost damage",
+  spellPenetration: "Spell penetration", mp5: "Mana per 5 sec", hit: "Hit", crit: "Critical strike",
+  expertise: "Expertise", armorPenetration: "Armor penetration", blockValue: "Block value", block: "Block",
+  defense: "Defense", dodge: "Dodge", parry: "Parry", armor: "Armor", bonusArmor: "Bonus armor"
+};
+const STAT_ORDER = Object.keys(STAT_LABEL);
+const SKIP_STORY = new Set(["armor", "bonusArmor", "weaponDps"]);
+const QUALITY = { 0: "#9d9d9d", 1: "#ffffff", 2: "#1eff00", 3: "#0070dd", 4: "#a335ee", 5: "#ff8000" };
+const SLOT_LABEL = {
+  head: "Head", neck: "Neck", shoulder: "Shoulder", back: "Back", chest: "Chest", wrist: "Wrist",
+  hands: "Hands", waist: "Waist", legs: "Legs", feet: "Feet", finger: "Finger", trinket: "Trinket",
+  weapon: "Weapon", ranged: "Ranged"
+};
+const ARMOR_LABEL = { cloth: "Cloth", leather: "Leather", mail: "Mail", plate: "Plate" };
+const HAND_LABEL = { twohand: "Two-hand", onehand: "One-hand", mainhand: "Main hand", offhand: "Off hand" };
+const BAND_MIN = 57;
+const BAND_MAX = 66;
+const ARMOR_SLOTS = ["head", "neck", "shoulder", "back", "chest", "wrist", "hands", "waist", "legs", "feet"];
+const SHOW_SLOTS = ["head", "neck", "shoulder", "back", "chest", "wrist", "hands", "waist", "legs", "feet", "finger1", "finger2", "trinket1", "trinket2", "mainhand", "offhand", "ranged"];
+
+const state = { items: [], people: [], weights: {}, priority: {}, gear: {}, drop: null, player: null, counts: {}, before: {}, rolls: {} };
+const ROUNDS = [
+  ["equip", "Can equip"],
+  ["fits", "Fits you"],
+  ["main", "Stat priority"],
+  ["upgrade", "Upgrade"],
+  ["plus", "MS+1"],
+  ["os", "Off spec"],
+  ["roll", "Roll"]
+];
+const HEAD_TIP = {
+  equip: ["Whether the game lets you equip it: armor class and your class's weapon list."],
+  fits: [
+    "It's your armor type and your role.",
+    "Armor has to be your own type. Lighter armor is off spec.",
+    "Weapons have to suit your role. Bows and guns are Izzy's, melee weapons are Matt's, shields and tank weapons are for tanks, and caster weapons are for casters.",
+    "Cloaks, necks, rings, and trinkets have no type or role, so everyone passes."
+  ],
+  main: [
+    "Each spec's stat priority comes from its SixtySim weights, like Agility > Intellect > Ranged attack power.",
+    "The item's biggest stat for your spec has to be in your top 6. Weapon damage counts for specs that weigh it."
+  ],
+  upgrade: ["It beats what you're wearing. A ring or trinket has to beat the weaker of your two, and a two-hander has to beat both hands."],
+  plus: ["The lowest count wins, and the dice break a tie. Each win adds +1, and counts reset every night."],
+  os: ["If nobody's left after MS+1, anyone who can equip it rolls off spec. The highest roll wins, with no +1."],
+  roll: ["Everyone still in rolls 1 to 100. The highest roll wins."]
+};
+const OWN_ARMOR = {
+  priest: "cloth", mage: "cloth", warlock: "cloth", druid: "leather",
+  hunter: "mail", shaman: "mail", warrior: "plate", paladin: "plate"
+};
+const TYPED_SLOTS = ["head", "shoulder", "chest", "wrist", "hands", "waist", "legs", "feet"];
+const ROLE = {
+  ethan: "healer", jamie: "healer", jake: "tank", wilder: "tank",
+  izzy: "ranged", matt: "melee", emma: "caster", trevor: "caster", kyle: "caster"
+};
+const PRIORITY_DEPTH = 6;
+const STAT_KEY = {};
+for (const [key, names] of Object.entries(ALIAS)) for (const name of names) STAT_KEY[name] = STAT_KEY[name] || key;
+
+function priorityList(spec) {
+  const seen = new Set();
+  return (spec.perPoint || [])
+    .filter(row => row.weight > 0)
+    .sort((a, b) => b.weight - a.weight)
+    .map(row => STAT_KEY[row.stat] || row.stat)
+    .filter(key => !seen.has(key) && seen.add(key));
+}
+
+function weightMap(spec) {
+  const map = {};
+  for (const key of ["perPoint", "perPercent", "perWeaponDps"]) {
+    for (const row of spec[key] || []) map[row.stat] = row.weight;
+  }
+  return map;
+}
+
+function canWear(person, item) {
+  const cls = person.className;
+  const armor = item.armor || item.armorType;
+  if (armor && !(ARMOR[cls] || []).includes(armor)) return false;
+  if (item.slot === "ranged" || item.ranged) {
+    const kind = item.ranged || item.weapon;
+    return !kind || (RANGED[cls] || []).includes(kind) || (WEAPONS[cls] || []).includes(kind);
+  }
+  if (item.weapon) return (WEAPONS[cls] || []).includes(item.weapon);
+  return true;
+}
+
+function scoreItem(item, weights, kind) {
+  if (!item || !weights) return 0;
+  const stats = Object.assign({}, item.stats || {});
+  const dps = item.dps || stats.weaponDps || 0;
+  delete stats.weaponDps;
+  let total = 0;
+  for (const [stat, amount] of Object.entries(stats)) {
+    let best = 0;
+    for (const name of ALIAS[stat] || []) best = Math.max(best, weights[name] || 0);
+    total += amount * best;
+  }
+  if (dps) {
+    const name = kind === "ranged" ? "Ranged weapon DPS" : kind === "offhand" ? "Off-hand weapon DPS" : "Main-hand weapon DPS";
+    total += dps * (weights[name] || 0);
+  }
+  return total;
+}
+
+function kindFor(slot) {
+  if (slot === "ranged") return "ranged";
+  if (slot === "offhand") return "offhand";
+  if (slot === "mainhand" || slot === "twohand" || slot === "weapon") return "weapon";
+  return "armor";
+}
+
+function wornSlot(item) {
+  if (item.slot === "weapon") {
+    if (item.hand === "twohand" || item.hand === "mainhand" || item.hand === "onehand") return "mainhand";
+    return "offhand";
+  }
+  if (item.slot === "twohand") return "mainhand";
+  return item.slot;
+}
+
+function pairSlots(item) {
+  if (item.slot === "finger") return ["finger1", "finger2"];
+  if (item.slot === "trinket") return ["trinket1", "trinket2"];
+  return null;
+}
+
+function replacedScore(gear, item, weights) {
+  const pair = pairSlots(item);
+  if (pair) return Math.min(...pair.map(slot => scoreItem(gear[slot], weights, "armor")));
+  if (item.hand === "twohand" || item.slot === "twohand") {
+    return scoreItem(gear.mainhand, weights, "weapon") + scoreItem(gear.offhand, weights, "offhand");
+  }
+  const slot = wornSlot(item);
+  return scoreItem(gear[slot], weights, kindFor(slot));
+}
+
+function wornPiece(gear, item, weights) {
+  const pair = pairSlots(item);
+  if (pair && weights) {
+    return pair
+      .map(slot => ({ item: gear[slot], score: scoreItem(gear[slot], weights, "armor") }))
+      .sort((a, b) => a.score - b.score)[0].item || null;
+  }
+  if (item.hand === "twohand" || item.slot === "twohand") return null;
+  return gear[wornSlot(item)] || null;
+}
+
+function wornName(gear, item, weights) {
+  const pair = pairSlots(item);
+  if (pair && weights) {
+    const worse = wornPiece(gear, item, weights);
+    return worse ? worse.name : "empty";
+  }
+  if (item.hand === "twohand" || item.slot === "twohand") {
+    const main = gear.mainhand ? gear.mainhand.name : "empty hands";
+    return gear.offhand ? `${main} + ${gear.offhand.name}` : main;
+  }
+  const worn = gear[wornSlot(item)];
+  return worn ? worn.name : "empty";
+}
+
+function esc(text) {
+  return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+}
+
+function joinLabels(labels) {
+  const shown = labels.slice(0, 3);
+  if (!shown.length) return "";
+  if (labels.length > 3) return `${shown.join(", ")}, and more`;
+  if (shown.length === 1) return shown[0];
+  if (shown.length === 2) return `${shown[0]} and ${shown[1]}`;
+  return `${shown.slice(0, -1).join(", ")}, and ${shown[shown.length - 1]}`;
+}
+
+function mixSentence(drop, worn, weights, ahead) {
+  if (drop.hand === "twohand" || drop.slot === "twohand") {
+    return ahead ? "Better than both weapons they have on." : "Both weapons they have on still score higher.";
+  }
+  if (!worn) return ahead ? "Nothing in that slot." : "Not better than what they wear.";
+  const wornStats = worn.stats || {};
+  const dropStats = drop.stats || {};
+  const up = [];
+  const down = [];
+  for (const stat of new Set([...Object.keys(dropStats), ...Object.keys(wornStats)])) {
+    if (SKIP_STORY.has(stat)) continue;
+    const label = (ALIAS[stat] || []).find(name => weights[name]);
+    if (!label) continue;
+    const amount = Number(dropStats[stat] || 0);
+    const had = Number(wornStats[stat] || 0);
+    if (amount === had) continue;
+    (amount > had ? up : down).push(label);
+  }
+  if (up.length && down.length) {
+    const close = ahead ? "The drop scores higher." : "What they wear still scores higher.";
+    return `More ${up[0]}, less ${down[0]}. This spec counts both. ${close}`;
+  }
+  if (up.length && !down.length) {
+    return up.length === 1
+      ? `More ${up[0]} than what they wear.`
+      : (ahead ? "Same stats, slightly higher than what they wear." : "Same stats. What they wear is already higher.");
+  }
+  if (down.length && !up.length) {
+    return ahead ? "Better than what they wear." : `Less ${joinLabels(down)} than what they wear.`;
+  }
+  return ahead ? "Better than what they wear." : "Not better than what they wear.";
+}
+
+function comparisonRows(drop, worn, weights) {
+  const wornStats = (worn && worn.stats) || {};
+  const dropStats = drop.stats || {};
+  const rows = [];
+  for (const stat of new Set([...Object.keys(dropStats), ...Object.keys(wornStats)])) {
+    if (SKIP_STORY.has(stat)) continue;
+    const matched = (ALIAS[stat] || []).find(name => weights[name]);
+    const label = matched || STAT_LABEL[stat] || stat;
+    const counted = (ALIAS[stat] || []).some(name => weights[name]);
+    const amount = Number(dropStats[stat] || 0);
+    const had = Number(wornStats[stat] || 0);
+    if (!amount && !had) continue;
+    if (!counted && !amount) continue;
+    rows.push({ stat, label, counted, amount, had });
+  }
+  rows.sort((a, b) => (STAT_ORDER.indexOf(a.stat) + 1 || 99) - (STAT_ORDER.indexOf(b.stat) + 1 || 99));
+  return rows;
+}
+
+function isRangedWeapon(item) {
+  return item.slot === "ranged" && ["bow", "gun", "crossbow"].includes(item.ranged);
+}
+
+function isMeleeOneHand(item) {
+  return item.slot === "weapon" && item.hand !== "twohand" && ["sword", "axe", "dagger", "fist"].includes(item.weapon);
+}
+
+function fitsYou(person, item) {
+  const role = ROLE[person.id];
+  const own = OWN_ARMOR[person.className];
+  if (TYPED_SLOTS.includes(item.slot) && item.armor && item.armor !== own) {
+    return { ok: false, why: `${ARMOR_LABEL[item.armor]} is lighter than their ${own}.` };
+  }
+  if (item.slot === "ranged" || item.ranged) {
+    const kind = item.ranged || item.weapon;
+    if (["bow", "gun", "crossbow"].includes(kind)) {
+      return role === "ranged" ? { ok: true, why: "Ranged hunter. Bows and guns are theirs." } : { ok: false, why: "Bows and guns are the ranged hunter's." };
+    }
+    if (kind === "wand") {
+      return role === "caster" || role === "healer" ? { ok: true, why: "Casters and healers use wands." } : { ok: false, why: "Wands are for casters and healers." };
+    }
+    if (role === "melee") return { ok: false, why: "Melee hunter. No ranged slot." };
+    return { ok: true, why: "Fits their ranged slot." };
+  }
+  if (item.slot === "weapon") {
+    if (item.weapon === "shield") {
+      return role === "tank" || person.className === "shaman" ? { ok: true, why: "Shields are for tanks and shamans." } : { ok: false, why: "Shields are for tanks and shamans." };
+    }
+    if (item.weapon === "offhand") {
+      return role === "caster" || role === "healer" ? { ok: true, why: "Held off-hands are for casters and healers." } : { ok: false, why: "Held off-hands are for casters and healers." };
+    }
+    if (role === "ranged" && isMeleeOneHand(item)) return { ok: false, why: "Ranged hunter. One-hand melee is the melee hunter's." };
+    return { ok: true, why: "Fits their role." };
+  }
+  if (TYPED_SLOTS.includes(item.slot)) return { ok: true, why: `Their own armor type, ${own}.` };
+  return { ok: true, why: "No armor type or role on this slot." };
+}
+
+function mainStat(item, specId) {
+  const order = state.priority[specId] || [];
+  const top = order.slice(0, PRIORITY_DEPTH);
+  const line = `${specName(specId)}: ${top.map(stat => STAT_LABEL[stat] || stat).join(" > ")}.`;
+  const weights = state.weights[specId] || {};
+  let lead = null;
+  let best = 0;
+  for (const [stat, amount] of Object.entries(item.stats || {})) {
+    if (SKIP_STORY.has(stat)) continue;
+    let weight = 0;
+    for (const name of ALIAS[stat] || []) weight = Math.max(weight, weights[name] || 0);
+    if (order.includes(stat) && amount * weight > best) { best = amount * weight; lead = stat; }
+  }
+  if (item.dps && scoreItem({ dps: item.dps }, weights, kindFor(wornSlot(item))) > 0) return { ok: true, why: `${line} Weapon damage counts.` };
+  if (!lead) return { ok: false, why: `${line} Nothing on this item is on the list.` };
+  const rank = order.indexOf(lead) + 1;
+  const name = STAT_LABEL[lead] || lead;
+  if (rank <= PRIORITY_DEPTH) return { ok: true, why: `${line} ${name} leads this item, number ${rank} on the list.` };
+  return { ok: false, why: `${line} ${name} leads this item, number ${rank}, outside the top ${PRIORITY_DEPTH}.` };
+}
+
+function upgradeOn(person, item, specId) {
+  const weights = state.weights[specId] || {};
+  const gear = state.gear[person.id] || {};
+  const now = replacedScore(gear, item, weights);
+  const next = scoreItem(item, weights, kindFor(wornSlot(item)));
+  return { ok: next > now + 0.5, now, next, why: mixSentence(item, wornPiece(gear, item, weights), weights, next > now + 0.5) };
+}
+
+function evaluate(person, item) {
+  const equip = canWear(person, item);
+  const fits = fitsYou(person, item);
+  const main = mainStat(item, person.raid);
+  const up = upgradeOn(person, item, person.raid);
+  const ms = equip && fits.ok && main.ok && up.ok;
+  let os = null;
+  if (equip && !ms) {
+    const specs = (fits.ok ? [] : [person.raid]).concat(person.off);
+    for (const specId of specs) {
+      const offMain = mainStat(item, specId);
+      if (!offMain.ok) continue;
+      const offUp = upgradeOn(person, item, specId);
+      if (offUp.ok) { os = { specId, main: offMain, up: offUp }; break; }
+    }
+  }
+  return { person, equip, fits, main, up, ms, os };
+}
+
+function consider(item) {
+  const rows = state.people.map(person => evaluate(person, item));
+  return { seats: rows.filter(row => row.ms), offs: rows.filter(row => row.os) };
+}
+
+function pick(list) {
+  if (!list.length) return null;
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+function other(list, taken) {
+  const rest = list.filter(item => item !== taken);
+  return pick(rest.length ? rest : list);
+}
+
+function band() {
+  return state.items.filter(item => item.ilvl >= BAND_MIN && item.ilvl <= BAND_MAX);
+}
+
+function randomGear(person, pool) {
+  const usable = pool.filter(item => canWear(person, item));
+  const gear = {};
+  const own = OWN_ARMOR[person.className];
+  for (const slot of ARMOR_SLOTS) {
+    const fit = usable.filter(item => item.slot === slot && (!TYPED_SLOTS.includes(slot) || !item.armor || item.armor === own));
+    gear[slot] = pick(fit.length ? fit : usable.filter(item => item.slot === slot));
+  }
+  const rings = usable.filter(item => item.slot === "finger");
+  gear.finger1 = pick(rings);
+  gear.finger2 = other(rings, gear.finger1);
+  const trinkets = usable.filter(item => item.slot === "trinket");
+  gear.trinket1 = pick(trinkets);
+  gear.trinket2 = other(trinkets, gear.trinket1);
+  const twohand = usable.filter(item => item.slot === "weapon" && item.hand === "twohand");
+  const onehand = usable.filter(item => item.slot === "weapon" && (item.hand === "mainhand" || item.hand === "onehand"));
+  const offhand = usable.filter(item => item.slot === "weapon" && (item.hand === "offhand" || item.weapon === "shield"));
+  const guns = usable.filter(item => isRangedWeapon(item));
+  if (person.id === "matt") {
+    gear.mainhand = pick(onehand);
+    gear.offhand = other(onehand, gear.mainhand);
+    gear.ranged = null;
+  } else if (person.id === "izzy") {
+    gear.mainhand = pick(onehand);
+    gear.offhand = null;
+    gear.ranged = pick(guns);
+  } else if (twohand.length && (!onehand.length || Math.random() < 0.45)) {
+    gear.mainhand = pick(twohand);
+    gear.offhand = null;
+    gear.ranged = pick(usable.filter(item => item.slot === "ranged"));
+  } else {
+    gear.mainhand = pick(onehand);
+    gear.offhand = pick(offhand);
+    gear.ranged = pick(usable.filter(item => item.slot === "ranged"));
+  }
+  return gear;
+}
+
+function rollDice() {
+  const used = new Set();
+  const rolls = {};
+  for (const person of state.people) {
+    let value;
+    do { value = 1 + Math.floor(Math.random() * 100); } while (used.has(value));
+    used.add(value);
+    rolls[person.id] = value;
+  }
+  return rolls;
+}
+
+function dropReal() {
+  let seen = 0;
+  let chosen = null;
+  for (const item of band()) {
+    const found = consider(item);
+    if (!found.seats.length && !found.offs.length) continue;
+    seen += 1;
+    if (Math.random() < 1 / seen) chosen = item;
+  }
+  state.drop = chosen;
+  state.dropCount = seen;
+  state.player = null;
+  state.before = { ...state.counts };
+  state.rolls = rollDice();
+  if (chosen) {
+    const winner = paths(chosen).find(row => row.won);
+    if (winner && winner.ms) state.counts[winner.person.id] = (state.counts[winner.person.id] || 0) + 1;
+    state.last = winner ? { name: winner.person.name, ms: winner.ms } : null;
+  }
+  render();
+}
+
+function fmt(n) { return Math.round(n).toLocaleString("en-US"); }
+function specName(id) { return (id || "").replace(/_/g, " ").replace(/\b\w/g, ch => ch.toUpperCase()); }
+
+function iconButton(person, round, why, out, left, top, iconSize) {
+  const icon = SPEC_ICON[person.raid] || "inv_misc_questionmark";
+  const tone = out === "os" ? " os" : out ? " out" : "";
+  return `<button class="who${tone}" type="button" style="left:${left}px;top:${top}px;width:${iconSize}px;height:${iconSize}px" data-id="${person.id}" data-round="${round}" data-why="${esc(why)}">
+    <img alt="" src="${ICON}${icon}.jpg">
+    <span class="letter">${person.name[0]}</span>
+  </button>`;
+}
+
+function metrics() {
+  const count = Math.max(state.people.length, 1);
+  const availH = Math.max(360, window.innerHeight - 144);
+  const gap = Math.min(74, availH / count);
+  const icon = Math.round(Math.min(48, Math.max(34, gap * 0.64)));
+  return { gap, icon, col: 156 };
+}
+
+function roundsFor() {
+  return ROUNDS;
+}
+
+function shownStage(stage) {
+  return stage.in || stage.why !== "Already out.";
+}
+
+function stackYs(count, slots, gap) {
+  const tight = count === slots ? gap : Math.max(42, gap * Math.pow(count / slots, 0.85));
+  const start = (slots * gap - count * tight) / 2;
+  return Array.from({ length: count }, (_, index) => start + (index + 0.5) * tight);
+}
+
+function paths(drop) {
+  const rows = state.people.map(person => evaluate(person, drop));
+  const msRows = rows.filter(row => row.ms);
+  const count = row => state.before[row.person.id] || 0;
+  const low = msRows.length ? Math.min(...msRows.map(count)) : 0;
+  const rollers = msRows.length ? msRows.filter(row => count(row) === low) : rows.filter(row => row.os);
+  const roll = row => state.rolls[row.person.id] || 0;
+  const top = rollers.length ? Math.max(...rollers.map(roll)) : 0;
+  const OUT = { in: false, why: "Already out." };
+  return rows.map(row => {
+    const gear = state.gear[row.person.id] || {};
+    const osNote = row.os ? ` Off spec next: ${specName(row.os.specId)}.` : "";
+    const wait = why => ({ in: true, os: true, why: `${why}${osNote}` });
+    const stages = [];
+    stages.push(row.equip ? { id: "equip", in: true, why: "Can equip it." } : { id: "equip", in: false, why: "Cannot equip this." });
+    const onMs = row.equip;
+    if (!onMs) stages.push({ id: "fits", ...OUT });
+    else if (row.fits.ok) stages.push({ id: "fits", in: true, why: row.fits.why });
+    else stages.push({ id: "fits", ...(row.os ? wait(row.fits.why) : { in: false, why: row.fits.why }) });
+    const pastFits = onMs && row.fits.ok;
+    if (!pastFits) stages.push({ id: "main", ...OUT });
+    else if (row.main.ok) stages.push({ id: "main", in: true, why: row.main.why });
+    else stages.push({ id: "main", ...(row.os ? wait(row.main.why) : { in: false, why: row.main.why }) });
+    const pastMain = pastFits && row.main.ok;
+    if (!pastMain) stages.push({ id: "upgrade", ...OUT });
+    else if (row.up.ok) stages.push({ id: "upgrade", in: true, why: row.up.why });
+    else stages.push({ id: "upgrade", ...(row.os ? wait(row.up.why) : { in: false, why: row.up.why }) });
+    const mine = count(row);
+    if (!row.ms) stages.push({ id: "plus", ...OUT });
+    else if (mine === low) stages.push({ id: "plus", in: true, why: `+${mine} tonight. Lowest among main-spec rolls.` });
+    else stages.push({ id: "plus", in: false, why: `+${mine} tonight. Someone rolling has +${low}.` });
+    if (!row.os) stages.push({ id: "os", ...OUT });
+    else if (msRows.length) stages.push({ id: "os", in: false, why: `${specName(row.os.specId)} waits. Main spec wants it.` });
+    else stages.push({ id: "os", in: true, why: `Off spec, ${specName(row.os.specId)}. ${row.os.up.why}` });
+    const rolling = rollers.includes(row);
+    const won = rolling && roll(row) === top;
+    if (!rolling) stages.push({ id: "roll", ...OUT });
+    else if (rollers.length === 1) stages.push({ id: "roll", in: true, why: "Only one left. Wins." });
+    else if (won) stages.push({ id: "roll", in: true, why: `Rolled ${roll(row)}. Wins.` });
+    else stages.push({ id: "roll", in: false, why: `Rolled ${roll(row)}. Lost to ${top}.` });
+    const specId = row.ms || !row.os ? row.person.raid : row.os.specId;
+    const scored = row.ms || !row.os ? row.up : row.os.up;
+    return {
+      ...row, won, stages, specId, now: scored.now, next: scored.next,
+      wearing: wornName(gear, drop, state.weights[specId])
+    };
+  });
+}
+
+function dropMeta(drop) {
+  const armorSlots = ["head", "shoulder", "chest", "wrist", "hands", "waist", "legs", "feet"];
+  let kind = SLOT_LABEL[drop.slot] || drop.slot;
+  if (armorSlots.includes(drop.slot) && drop.armor) kind = `${ARMOR_LABEL[drop.armor] || drop.armor} ${kind.toLowerCase()}`;
+  else if (drop.slot === "weapon") {
+    if (drop.weapon === "shield") kind = "Shield";
+    else if (drop.weapon === "offhand") kind = "Off hand";
+    else kind = `${HAND_LABEL[drop.hand] || "Weapon"} ${drop.weapon || "weapon"}`;
+  } else if (drop.slot === "ranged") {
+    const name = drop.ranged || "ranged";
+    kind = name.charAt(0).toUpperCase() + name.slice(1);
+  }
+  return `Item level ${drop.ilvl} · ${kind}`;
+}
+
+function renderDropTip() {
+  const tip = document.getElementById("tip");
+  const show = state.drop && !state.player;
+  if (!show) { tip.hidden = true; return; }
+  tip.hidden = false;
+  const drop = state.drop;
+  const stats = Object.entries(drop.stats || {})
+    .filter(([key]) => key !== "weaponDps")
+    .sort((a, b) => (STAT_ORDER.indexOf(a[0]) + 1 || 99) - (STAT_ORDER.indexOf(b[0]) + 1 || 99))
+    .map(([key, amount]) => `<li>+${amount} ${STAT_LABEL[key] || key}</li>`)
+    .join("");
+  const dps = drop.dps ? `<li>${Number(drop.dps).toFixed(1)} damage per second</li>` : "";
+  const icon = drop.icon ? `<img alt="" src="${ICON}${drop.icon}.jpg">` : "";
+  tip.innerHTML = `<div class="tip-head">${icon}<div><h3 style="color:${QUALITY[drop.quality] || "#e7e2d8"}">${esc(drop.name)}</h3><p class="meta">${esc(dropMeta(drop))}</p></div></div><ul class="stats">${stats}${dps}</ul>`;
+}
+
+function renderPlayer(drop) {
+  const row = paths(drop).find(entry => entry.person.id === state.player.id);
+  if (!row) { state.player = null; return renderBracket(drop); }
+  const stage = row.stages.find(entry => entry.id === state.player.round) || row.stages[0];
+  const gear = state.gear[row.person.id] || {};
+  const speaking = row.specId;
+  const weights = state.weights[speaking] || {};
+  const worn = wornPiece(gear, drop, weights);
+  const now = row.now;
+  const next = row.next;
+  const icon = SPEC_ICON[row.person.raid] || "inv_misc_questionmark";
+  const round = ROUNDS.find(entry => entry[0] === stage.id)[1];
+  const rows = comparisonRows(drop, worn, weights).map(entry => {
+    if (!entry.counted) return `<li><span>${esc(entry.label)}</span><span class="miss">Not on this spec</span></li>`;
+    return `<li><span>${esc(entry.label)}</span><span class="muted">${entry.had} worn</span><span>${entry.amount} drop</span></li>`;
+  }).join("");
+  const compare = (drop.hand === "twohand" || drop.slot === "twohand" || !rows) ? "" : `<ul class="compare">${rows}</ul>`;
+  const slotNote = drop.slot === "finger" ? "Compared with the weaker of the two rings." : drop.slot === "trinket" ? "Compared with the weaker of the two trinkets." : "";
+  document.getElementById("result").innerHTML = `
+    <button id="back" type="button">Back</button>
+    <div class="sheet">
+    <div class="identity">
+      <div class="face"><img alt="" src="${ICON}${icon}.jpg"><span class="letter">${row.person.name[0]}</span></div>
+      <div>
+        <h2>${esc(row.person.name)}</h2>
+        <p class="muted">${esc(specName(speaking))}${speaking === row.person.raid ? " · main spec" : " · off spec"}. +${state.before[row.person.id] || 0} tonight before this drop.</p>
+      </div>
+    </div>
+    <p><strong>${esc(round)}.</strong> ${esc(stage.why)}</p>
+    <p class="muted">Against ${esc(drop.name)}. Wearing ${esc(row.wearing)}. ${fmt(now)} now, ${fmt(next)} with the drop. ${esc(slotNote)}</p>
+    ${compare}
+    <ul class="gear">
+      ${SHOW_SLOTS.map(slot => {
+        const item = gear[slot];
+        const text = item ? `${item.name} (${item.ilvl})` : "empty";
+        const score = item ? ` · ${fmt(scoreItem(item, weights, kindFor(slot)))}` : "";
+        return `<li><span class="muted">${slot}.</span> ${esc(text)}${score}</li>`;
+      }).join("")}
+    </ul>
+    </div>`;
+}
+
+function renderBracket(drop) {
+  const rows = paths(drop);
+  const { gap, icon, col } = metrics();
+  const slots = rows.length;
+  const height = slots * gap;
+  const rounds = roundsFor(drop);
+  const width = (rounds.length - 1) * col + icon + 16;
+  const shownAt = row => row.stages.map((stage, index) => shownStage(stage) ? index : -1).filter(index => index >= 0);
+  const passing = (row, index) => {
+    const at = shownAt(row);
+    return at.some(i => i < index) && at.some(i => i > index);
+  };
+  const placed = rounds.map((_, index) => {
+    const lane = rows.filter(row => shownStage(row.stages[index]) || passing(row, index));
+    const ys = stackYs(lane.length, slots, gap);
+    return lane.map((row, order) => ({ row, y: ys[order], stage: row.stages[index], node: shownStage(row.stages[index]) }));
+  });
+  const yOf = (round, id) => placed[round].find(entry => entry.row.person.id === id).y;
+  const wires = rows.map(row => {
+    const indices = shownAt(row);
+    return indices.slice(0, -1).map((from, order) => {
+      const to = indices[order + 1];
+      const next = row.stages[to];
+      let d = `M ${8 + from * col + icon} ${yOf(from, row.person.id)}`;
+      for (let j = from + 1; j <= to; j += 1) {
+        const left = 8 + j * col;
+        d += ` H ${left - (col - icon) / 2} V ${yOf(j, row.person.id)} H ${left}`;
+        if (j < to) d += ` H ${left + icon}`;
+      }
+      const color = next.in ? CLASS_COLOR[row.person.className] : darker(CLASS_COLOR[row.person.className]);
+      const dash = row.stages[from].os || next.os ? ' stroke-dasharray="5 5"' : "";
+      return `<path d="${d}" stroke="${color}"${dash}></path>`;
+    }).join("");
+  }).join("");
+  const buttons = placed.map((column, index) => column.filter(entry => entry.node).map(entry => {
+    const left = 8 + index * col;
+    const top = entry.y - icon / 2;
+    const why = entry.stage.id === "equip" ? entry.row.person.name : entry.stage.why;
+    return iconButton(entry.row.person, entry.stage.id, why, entry.stage.os ? "os" : !entry.stage.in, left, top, icon);
+  }).join("")).join("");
+  const heads = rounds.map(([id, label]) => `<div class="round-title" style="width:${col}px"><span data-head="${id}">${label}</span></div>`).join("");
+  document.getElementById("result").innerHTML = `
+    <div class="board">
+      <div class="board-heads">${heads}</div>
+      <div class="pitch" style="width:${width}px;height:${height}px">
+        <svg width="${width}" height="${height}">${wires}</svg>
+        ${buttons}
+      </div>
+    </div>`;
+  document.getElementById("hover").hidden = true;
+}
+
+function render() {
+  const drop = state.drop;
+  const controls = document.querySelector(".controls");
+  document.body.classList.toggle("board-view", !state.player);
+  if (controls) controls.hidden = !!state.player;
+  if (!drop) {
+    state.player = null;
+    document.body.classList.add("board-view");
+    if (controls) controls.hidden = false;
+    document.getElementById("tip").hidden = true;
+    document.getElementById("result").innerHTML = "<h2>No drop yet</h2><p class=\"muted\">Random gear, then a random item.</p>";
+    return;
+  }
+  if (state.player) renderPlayer(drop);
+  else renderBracket(drop);
+  renderDropTip();
+  renderTally();
+}
+
+function renderTally() {
+  const tally = document.getElementById("tally");
+  tally.hidden = !!state.player;
+  const counts = state.people
+    .filter(person => state.counts[person.id])
+    .map(person => `${esc(person.name)} +${state.counts[person.id]}`);
+  const last = state.last ? `<strong>${esc(state.last.name)}</strong> won ${state.last.ms ? "main spec, +1" : "off spec, no +1"}. ` : "Nobody won. ";
+  tally.innerHTML = `${last}Tonight: ${counts.length ? counts.join(" · ") : "everyone +0"}`;
+}
+
+function randomize() {
+  const pool = band();
+  for (const person of state.people) state.gear[person.id] = randomGear(person, pool);
+  state.counts = {};
+  dropReal();
+}
+
+async function main() {
+  const [items, seats, weightFile] = await Promise.all([
+    fetch("data/forever_items.json").then(r => r.json()),
+    fetch("data/seats.json").then(r => r.json()),
+    fetch("data/sixtysim_weights.json").then(r => r.json())
+  ]);
+  state.items = items.items;
+  for (const spec of weightFile.specs) {
+    state.weights[spec.id] = weightMap(spec);
+    state.priority[spec.id] = priorityList(spec);
+  }
+  state.people = seats.people.map(person => ({
+    id: person.id,
+    name: person.name,
+    className: CLASS_OF[person.id],
+    raid: person.raid_spec,
+    off: person.off_specs || []
+  }));
+  document.getElementById("result").addEventListener("click", event => {
+    if (event.target.closest("#back")) {
+      state.player = null;
+      render();
+      return;
+    }
+    const button = event.target.closest("button.who");
+    if (!button) return;
+    document.getElementById("hover").hidden = true;
+    state.player = { id: button.dataset.id, round: button.dataset.round };
+    render();
+  });
+  const hover = document.getElementById("hover");
+  document.getElementById("result").addEventListener("mouseover", event => {
+    const head = event.target.closest("[data-head]");
+    if (head) {
+      hover.hidden = false;
+      hover.className = "head";
+      hover.innerHTML = HEAD_TIP[head.dataset.head].map(line => `<p>${line}</p>`).join("");
+      const box = head.getBoundingClientRect();
+      hover.style.left = `${box.left}px`;
+      hover.style.top = `${box.bottom + 8}px`;
+      hover.style.transform = "none";
+      return;
+    }
+    const button = event.target.closest("button.who");
+    if (!button) return;
+    hover.hidden = false;
+    hover.className = "";
+    hover.textContent = button.dataset.why;
+    const box = button.getBoundingClientRect();
+    hover.style.left = `${box.right + 10}px`;
+    hover.style.top = `${box.top + box.height / 2}px`;
+    hover.style.transform = "translateY(-50%)";
+  });
+  document.getElementById("result").addEventListener("mouseout", event => {
+    if (event.target.closest("[data-head]")) { hover.hidden = true; return; }
+    if (!event.target.closest("button.who")) return;
+    const next = event.relatedTarget && event.relatedTarget.closest ? event.relatedTarget.closest("button.who") : null;
+    if (!next) hover.hidden = true;
+  });
+  document.getElementById("roll").addEventListener("click", randomize);
+  document.getElementById("drop-btn").addEventListener("click", dropReal);
+  window.addEventListener("resize", () => { if (state.drop) render(); });
+  randomize();
+}
+
+main().catch(err => {
+  document.getElementById("result").innerHTML = "<p class=\"muted\">Could not load the item log. Open this page from the wow-forever folder's local server.</p>";
+  console.error(err);
+});
+</script>
+</body>
+</html>

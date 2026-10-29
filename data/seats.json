@@ -1,0 +1,78 @@
+{
+  "people": [
+    {
+      "id": "ethan",
+      "name": "Ethan",
+      "raid_spec": "priest_discipline",
+      "off_specs": [
+        "priest_shadow"
+      ]
+    },
+    {
+      "id": "jamie",
+      "name": "Jamie",
+      "raid_spec": "druid_restoration",
+      "off_specs": [
+        "druid_balance"
+      ]
+    },
+    {
+      "id": "jake",
+      "name": "Jake",
+      "raid_spec": "warrior_protection",
+      "off_specs": [
+        "warrior_arms",
+        "warrior_fury"
+      ]
+    },
+    {
+      "id": "wilder",
+      "name": "Wilder",
+      "raid_spec": "paladin_protection",
+      "off_specs": [
+        "paladin_retribution"
+      ]
+    },
+    {
+      "id": "izzy",
+      "name": "Izzy",
+      "raid_spec": "hunter_marksmanship",
+      "off_specs": []
+    },
+    {
+      "id": "matt",
+      "name": "Matt",
+      "raid_spec": "hunter_survival",
+      "off_specs": []
+    },
+    {
+      "id": "emma",
+      "name": "Emma",
+      "raid_spec": "mage_arcane",
+      "off_specs": [
+        "mage_fire",
+        "mage_frost",
+        "mage_frostfire"
+      ]
+    },
+    {
+      "id": "trevor",
+      "name": "Trevor",
+      "raid_spec": "warlock_ds_ruin",
+      "off_specs": [
+        "warlock_affliction",
+        "warlock_demonology",
+        "warlock_destruction"
+      ]
+    },
+    {
+      "id": "kyle",
+      "name": "Kyle",
+      "raid_spec": "shaman_stormcaller",
+      "off_specs": [
+        "shaman_enhancement",
+        "shaman_elemental"
+      ]
+    }
+  ]
+}

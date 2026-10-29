@@ -1,5 +1,8 @@
-import { useMemo } from "react";
-import { ReactFlow, Background, Controls, Handle, Position, BaseEdge } from "@xyflow/react";
+import { useCallback, useEffect, useMemo } from "react";
+import {
+  ReactFlow, ReactFlowProvider, Background, Controls, ControlButton, Handle, Position, BaseEdge,
+  useReactFlow
+} from "@xyflow/react";
 import { ICON as ICON_URL, SPEC_ICON } from "./loot.js";
 import { buildGraph, ICON } from "./graph.js";
 
@@ -58,30 +61,45 @@ export default function Bracket({ rows, serial, hover, unhover, open, headTips }
     return built;
   }, [rows, hover, unhover, open, headTips]);
 
-  const fit = instance => {
-    const { x, y, width, height } = graph.bounds;
-    const narrow = window.innerWidth < 700;
-    const padLeft = narrow ? 16 : 40;
-    const padRight = narrow ? 16 : 320;
-    const padTop = 110;
-    const padBottom = narrow ? 230 : 30;
-    const availW = window.innerWidth - padLeft - padRight;
-    const availH = window.innerHeight - padTop - padBottom;
-    const zoom = narrow
-      ? Math.max(0.6, Math.min(1, availH / height))
-      : Math.min(1.4, availW / width, availH / height);
-    const top = padTop + Math.max(0, (availH - height * zoom) / 2);
-    instance.setViewport({ x: padLeft - x * zoom, y: top - y * zoom, zoom });
-  };
+  return (
+    <ReactFlowProvider key={serial}>
+      <Board graph={graph} unhover={unhover} />
+    </ReactFlowProvider>
+  );
+}
+
+function fittedViewport({ x, y, width, height }) {
+  const narrow = window.innerWidth < 700;
+  const padLeft = narrow ? 16 : 40;
+  const padRight = narrow ? 16 : 320;
+  const padTop = 110;
+  const padBottom = narrow ? 230 : 30;
+  const availW = window.innerWidth - padLeft - padRight;
+  const availH = window.innerHeight - padTop - padBottom;
+  const zoom = narrow
+    ? Math.max(0.6, Math.min(1, availH / height))
+    : Math.min(1.4, availW / width, availH / height);
+  const top = padTop + Math.max(0, (availH - height * zoom) / 2);
+  return { x: padLeft - x * zoom, y: top - y * zoom, zoom };
+}
+
+function Board({ graph, unhover }) {
+  const flow = useReactFlow();
+  const start = useMemo(() => fittedViewport(graph.bounds), [graph]);
+  const fit = useCallback(() => flow.setViewport(fittedViewport(graph.bounds), { duration: 200 }), [flow, graph]);
+
+  useEffect(() => {
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, [fit]);
 
   return (
     <ReactFlow
-      key={serial}
       nodes={graph.nodes}
       edges={graph.edges}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
-      onInit={fit}
+      defaultViewport={start}
       onMoveStart={unhover}
       colorMode="dark"
       nodesDraggable={false}
@@ -91,7 +109,11 @@ export default function Bracket({ rows, serial, hover, unhover, open, headTips }
       maxZoom={3}
     >
       <Background color="#2a2723" gap={24} size={1.5} />
-      <Controls position="bottom-left" showInteractive={false} />
+      <Controls position="bottom-left" showInteractive={false} showFitView={false}>
+        <ControlButton onClick={fit} title="Fit" aria-label="Fit">
+          <svg viewBox="0 0 32 30"><path d="M3.692 4.63c0-.53.4-.938.939-.938h5.215V0H4.708C2.13 0 0 2.054 0 4.63v5.216h3.692V4.631zM27.354 0h-5.2v3.692h5.17c.53 0 .984.4.984.939v5.215H32V4.631A4.624 4.624 0 0027.354 0zm.954 24.83c0 .532-.4.94-.939.94h-5.215v3.768h5.215c2.577 0 4.631-2.13 4.631-4.707v-5.139h-3.692v5.139zm-23.677.94c-.531 0-.939-.4-.939-.94v-5.138H0v5.139c0 2.577 2.13 4.707 4.708 4.707h5.138V25.77H4.631z" /></svg>
+        </ControlButton>
+      </Controls>
     </ReactFlow>
   );
 }

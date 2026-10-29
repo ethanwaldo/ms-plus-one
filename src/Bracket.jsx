@@ -11,7 +11,7 @@ function PersonNode({ data }) {
   return (
     <button
       type="button"
-      className={`who ${data.tone}`}
+      className={`who nopan ${data.tone}`}
       style={{ width: ICON, height: ICON }}
       onMouseEnter={event => data.hover(event.currentTarget, data.lines, "right")}
       onMouseLeave={data.unhover}
@@ -29,6 +29,7 @@ function HeadNode({ data }) {
   return (
     <div className="round-title">
       <span
+        className="nopan"
         onMouseEnter={event => data.hover(event.currentTarget, data.lines, "below")}
         onMouseLeave={data.unhover}
         onClick={event => data.hover(event.currentTarget, data.lines, "below")}

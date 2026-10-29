@@ -84,7 +84,7 @@ export const SHOW_SLOTS = ["head", "neck", "shoulder", "back", "chest", "wrist",
 
 export const S = { items: [], people: [], weights: {}, priority: {}, gear: {}, drop: null, counts: {}, before: {}, rolls: {}, last: null, serial: 0 };
 export const ROUNDS = [
-  ["gear", "Equipment type & role"],
+  ["gear", "Meant to wear"],
   ["main", "Stat priority"],
   ["upgrade", "Upgrade"],
   ["plus", "MS+1"],
@@ -93,11 +93,10 @@ export const ROUNDS = [
 ];
 export const HEAD_TIP = {
   gear: [
-    "It's your equipment type and your role.",
-    "Armor has to be your own type. Lighter armor you can wear is off spec only.",
-    "Weapons have to suit your role. Bows and guns are Izzy's, melee weapons are Matt's, shields and tank weapons are for tanks, and caster weapons are for casters. A weapon your class can use but your role doesn't is off spec only.",
-    "If your class can't equip it at all, you're out.",
-    "Cloaks, necks, rings, and trinkets have no type or role, so everyone passes."
+    "Is this the gear your character is meant to wear?",
+    "Yes: it's your own armor type (plate for Jake and Wilder; mail for Izzy, Matt, and Kyle; leather for Jamie; cloth for Ethan, Emma, and Trevor), or a weapon your role uses. Bows and guns are Izzy's, melee weapons are Matt's, shields and tank weapons are for tanks, and caster weapons are for casters. Rings, necks, cloaks, and trinkets count for everyone. You go on to the main-spec checks.",
+    "You can use it, but it isn't meant for you: lighter armor, or a weapon for another role. Off spec only, after main spec passes.",
+    "Your class can't equip it at all: you're out."
   ],
   main: [
     "Each spec's stat priority comes from its SixtySim weights, like Agility > Intellect > Ranged attack power.",

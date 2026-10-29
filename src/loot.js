@@ -84,8 +84,7 @@ export const SHOW_SLOTS = ["head", "neck", "shoulder", "back", "chest", "wrist",
 
 export const S = { items: [], people: [], weights: {}, priority: {}, gear: {}, drop: null, counts: {}, before: {}, rolls: {}, last: null, serial: 0 };
 export const ROUNDS = [
-  ["equip", "Can equip"],
-  ["fits", "Fits you"],
+  ["gear", "Equipment type & role"],
   ["main", "Stat priority"],
   ["upgrade", "Upgrade"],
   ["plus", "MS+1"],
@@ -93,11 +92,11 @@ export const ROUNDS = [
   ["roll", "Roll"]
 ];
 export const HEAD_TIP = {
-  equip: ["Whether the game lets you equip it: armor class and your class's weapon list."],
-  fits: [
-    "It's your armor type and your role.",
-    "Armor has to be your own type. Lighter armor is off spec.",
-    "Weapons have to suit your role. Bows and guns are Izzy's, melee weapons are Matt's, shields and tank weapons are for tanks, and caster weapons are for casters.",
+  gear: [
+    "It's your equipment type and your role.",
+    "Armor has to be your own type. Lighter armor you can wear is off spec only.",
+    "Weapons have to suit your role. Bows and guns are Izzy's, melee weapons are Matt's, shields and tank weapons are for tanks, and caster weapons are for casters. A weapon your class can use but your role doesn't is off spec only.",
+    "If your class can't equip it at all, you're out.",
     "Cloaks, necks, rings, and trinkets have no type or role, so everyone passes."
   ],
   main: [
@@ -149,6 +148,15 @@ function canWear(person, item) {
   }
   if (item.weapon) return (WEAPONS[cls] || []).includes(item.weapon);
   return true;
+}
+
+function equipWhy(person, item) {
+  const cls = person.className;
+  const armor = item.armor || item.armorType;
+  if (armor && !(ARMOR[cls] || []).includes(armor)) return `A ${cls} can't wear ${armor}.`;
+  const kind = item.slot === "ranged" ? item.ranged || item.weapon : item.weapon;
+  if (kind) return `A ${cls} can't use ${kind === "offhand" ? "held off-hands" : `${kind}s`}.`;
+  return "Their class can't equip this.";
 }
 
 export function scoreItem(item, weights, kind) {
@@ -491,12 +499,11 @@ export function paths(drop) {
     const osNote = row.os ? ` Off spec next: ${specName(row.os.specId)}.` : "";
     const wait = why => ({ in: true, os: true, why: `${why}${osNote}` });
     const stages = [];
-    stages.push(row.equip ? { id: "equip", in: true, why: "Can equip it." } : { id: "equip", in: false, why: "Cannot equip this." });
-    const onMs = row.equip;
-    if (!onMs) stages.push({ id: "fits", ...OUT });
-    else if (row.fits.ok) stages.push({ id: "fits", in: true, why: row.fits.why });
-    else stages.push({ id: "fits", ...(row.os ? wait(row.fits.why) : { in: false, why: row.fits.why }) });
-    const pastFits = onMs && row.fits.ok;
+    if (!row.equip) stages.push({ id: "gear", in: false, why: equipWhy(row.person, drop) });
+    else if (row.fits.ok) stages.push({ id: "gear", in: true, why: row.fits.why });
+    else if (row.os) stages.push({ id: "gear", in: true, os: true, why: `${row.fits.why} Off spec only, as ${specName(row.os.specId)}.` });
+    else stages.push({ id: "gear", in: false, why: `${row.fits.why} Off spec only, and no off spec wants it.` });
+    const pastFits = row.equip && row.fits.ok;
     if (!pastFits) stages.push({ id: "main", ...OUT });
     else if (row.main.ok) stages.push({ id: "main", in: true, why: row.main.why });
     else stages.push({ id: "main", ...(row.os ? wait(row.main.why) : { in: false, why: row.main.why }) });

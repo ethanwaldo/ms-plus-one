@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import {
   ReactFlow, ReactFlowProvider, Background, Controls, ControlButton, Handle, Position, BaseEdge,
-  useReactFlow
+  useReactFlow, useStore
 } from "@xyflow/react";
 import { ICON as ICON_URL, SPEC_ICON } from "./loot.js";
 import { buildGraph, ICON } from "./graph.js";
@@ -13,7 +13,7 @@ function PersonNode({ data }) {
       type="button"
       className={`who ${data.tone}`}
       style={{ width: ICON, height: ICON }}
-      onMouseEnter={event => data.hover(event.currentTarget, [data.why], "right")}
+      onMouseEnter={event => data.hover(event.currentTarget, data.lines, "right")}
       onMouseLeave={data.unhover}
       onClick={() => data.open(data.person.id, data.round)}
     >
@@ -68,14 +68,14 @@ export default function Bracket({ rows, serial, hover, unhover, open, headTips }
   );
 }
 
-function fittedViewport({ x, y, width, height }) {
-  const narrow = window.innerWidth < 700;
+function fittedViewport({ x, y, width, height }, screenW = window.innerWidth, screenH = window.innerHeight) {
+  const narrow = screenW < 700;
   const padLeft = narrow ? 16 : 40;
   const padRight = narrow ? 16 : 320;
-  const padTop = 110;
+  const padTop = 120;
   const padBottom = narrow ? 230 : 30;
-  const availW = window.innerWidth - padLeft - padRight;
-  const availH = window.innerHeight - padTop - padBottom;
+  const availW = screenW - padLeft - padRight;
+  const availH = screenH - padTop - padBottom;
   const zoom = narrow
     ? Math.max(0.6, Math.min(1, availH / height))
     : Math.min(1.4, availW / width, availH / height);
@@ -85,13 +85,17 @@ function fittedViewport({ x, y, width, height }) {
 
 function Board({ graph, unhover }) {
   const flow = useReactFlow();
+  const paneW = useStore(state => state.width);
+  const paneH = useStore(state => state.height);
   const start = useMemo(() => fittedViewport(graph.bounds), [graph]);
-  const fit = useCallback(() => flow.setViewport(fittedViewport(graph.bounds), { duration: 200 }), [flow, graph]);
+  const fit = useCallback(
+    () => flow.setViewport(fittedViewport(graph.bounds, paneW || undefined, paneH || undefined), { duration: 200 }),
+    [flow, graph, paneW, paneH]
+  );
 
   useEffect(() => {
-    window.addEventListener("resize", fit);
-    return () => window.removeEventListener("resize", fit);
-  }, [fit]);
+    if (paneW && paneH) flow.setViewport(fittedViewport(graph.bounds, paneW, paneH));
+  }, [flow, graph, paneW, paneH]);
 
   return (
     <ReactFlow

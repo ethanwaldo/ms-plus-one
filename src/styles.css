@@ -23,7 +23,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 #tally { position: fixed; z-index: 8; top: 68px; left: 22px; font-size: 13px; color: #9c978e; pointer-events: none; }
 #tally strong { color: #e7e2d8; font-weight: 600; }
 
-.round-title { width: 156px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #9c978e; white-space: nowrap; }
+.round-title { width: 124px; font-size: 11px; line-height: 1.5; letter-spacing: 0.08em; text-transform: uppercase; color: #9c978e; }
 .round-title span { cursor: help; border-bottom: 1px dotted rgba(156, 151, 142, 0.6); }
 .round-title span:hover { color: #e7e2d8; }
 

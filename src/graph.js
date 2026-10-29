@@ -3,7 +3,7 @@ import { CLASS_COLOR, ROUNDS, darker, shownStage } from "./loot.js";
 export const COL = 156;
 export const GAP = 64;
 export const ICON = 44;
-const HEAD_Y = -56;
+const HEAD_Y = -64;
 
 function stackYs(count, slots) {
   const tight = count === slots ? GAP : Math.max(42, GAP * Math.pow(count / slots, 0.85));
@@ -44,7 +44,7 @@ export function buildGraph(rows) {
         data: {
           person,
           round: entry.stage.id,
-          why: entry.stage.id === "equip" ? person.name : entry.stage.why,
+          lines: index === 0 ? [person.name, entry.stage.why] : [entry.stage.why],
           tone: entry.stage.os ? "os" : entry.stage.in ? "" : "out"
         },
         draggable: false,

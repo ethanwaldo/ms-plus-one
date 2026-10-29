@@ -1,0 +1,85 @@
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; height: 100%; }
+body { font: 15px/1.45 "Segoe UI", system-ui, sans-serif; background: #161513; color: #e7e2d8; overflow: hidden; }
+button { font: inherit; color: inherit; cursor: pointer; }
+.muted { color: #9c978e; }
+.pad { padding: 24px; }
+
+.board { position: fixed; inset: 0; }
+.board .react-flow { background: #161513; }
+.react-flow__controls { box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35); border-radius: 10px; overflow: hidden; }
+.react-flow__controls-button { background: #1f1d1a; border-bottom-color: #2a2723; fill: #e7e2d8; }
+.react-flow__controls-button:hover { background: #2a2723; }
+.react-flow__attribution { background: transparent; }
+.react-flow__attribution a { color: #57534c; }
+
+.controls { position: fixed; z-index: 8; top: 20px; left: 20px; display: flex; gap: 8px; }
+.controls button, #back {
+  padding: 10px 16px; border-radius: 999px; border: 1px solid rgba(231, 226, 216, 0.16);
+  background: #161513; color: #e7e2d8; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+.controls button:hover, #back:hover { border-color: rgba(231, 226, 216, 0.45); }
+#tally { position: fixed; z-index: 8; top: 68px; left: 22px; font-size: 13px; color: #9c978e; pointer-events: none; }
+#tally strong { color: #e7e2d8; font-weight: 600; }
+
+.round-title { width: 156px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #9c978e; white-space: nowrap; }
+.round-title span { cursor: help; border-bottom: 1px dotted rgba(156, 151, 142, 0.6); }
+.round-title span:hover { color: #e7e2d8; }
+
+button.who { padding: 0; border-radius: 50%; border: 2px solid transparent; position: relative; overflow: hidden; background: #2a2723; display: block; }
+button.who img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; pointer-events: none; }
+button.who .letter { position: absolute; left: 50%; bottom: 2px; transform: translateX(-50%); width: 16px; height: 16px; border-radius: 50%; background: #1c1915; color: #fff; font-size: 10px; font-weight: 700; display: grid; place-items: center; }
+button.who.out { opacity: 0.32; }
+button.who.os { opacity: 0.7; border: 2px dashed rgba(231, 226, 216, 0.6); }
+.ghost-handle { opacity: 0; width: 1px; height: 1px; min-width: 0; min-height: 0; border: 0; pointer-events: none; }
+
+#hover {
+  position: fixed; z-index: 20; pointer-events: none; background: #161513; color: #e7e2d8;
+  border: 1px solid rgba(231, 226, 216, 0.16); border-radius: 8px; padding: 8px 10px;
+  font-size: 13px; line-height: 1.35; max-width: 280px; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+#hover p { margin: 0 0 6px; }
+#hover p:last-child { margin: 0; }
+#hover.head { max-width: 320px; }
+
+#tip {
+  position: fixed; z-index: 8; top: 20px; right: 20px; width: 280px; background: rgba(22, 21, 19, 0.5); color: #e7e2d8;
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(231, 226, 216, 0.14); border-radius: 12px; padding: 14px 16px 12px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+.tip-head { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+.tip-head img { width: 44px; height: 44px; border-radius: 6px; background: #0e0d0c; flex: none; }
+#tip h3 { margin: 0; font-size: 16px; font-weight: 650; line-height: 1.25; }
+#tip .meta { margin: 3px 0 0; color: #9c978e; font-size: 12px; }
+#tip ul.stats { list-style: none; margin: 0; padding: 0; }
+#tip ul.stats li { margin: 0; padding: 1px 0; font-size: 14px; line-height: 1.45; color: #d5d0c6; }
+
+.sheet-wrap { position: fixed; inset: 0; z-index: 30; background: #161513; overflow-y: auto; padding: 76px 28px 48px; }
+#back { position: fixed; z-index: 31; top: 20px; left: 20px; }
+.sheet { max-width: 760px; }
+h2 { margin: 0 0 4px; font-size: 28px; font-weight: 650; }
+.identity { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
+.face { width: 72px; height: 72px; border-radius: 50%; position: relative; overflow: hidden; background: #2a2723; flex: none; }
+.face img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.face .letter { position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%); width: 20px; height: 20px; border-radius: 50%; background: #1c1915; color: #fff; font-size: 12px; font-weight: 700; display: grid; place-items: center; }
+ul.compare { list-style: none; margin: 18px 0 8px; padding: 0; max-width: 460px; }
+ul.compare li { display: grid; grid-template-columns: 150px 110px 110px; gap: 8px; padding: 7px 0; border-top: 1px solid rgba(231, 226, 216, 0.1); font-size: 14px; }
+ul.compare .miss { color: #9c978e; grid-column: 2 / -1; }
+ul.gear { margin: 22px 0 0; padding: 0; list-style: none; columns: 2; max-width: 720px; }
+ul.gear li { margin: 0; padding: 5px 16px 5px 0; break-inside: avoid; font-size: 14px; }
+
+@media (max-width: 700px) {
+  .controls { top: 12px; left: 12px; }
+  .controls button { padding: 8px 12px; font-size: 14px; }
+  #tally { top: 56px; left: 14px; right: 14px; font-size: 12px; }
+  #tip { top: auto; bottom: 12px; left: 12px; right: 12px; width: auto; max-height: 200px; overflow-y: auto; padding: 10px 12px; }
+  .tip-head { margin-bottom: 6px; }
+  #tip ul.stats { columns: 2; }
+  #tip ul.stats li { font-size: 13px; }
+  .react-flow__controls { display: none; }
+  .sheet-wrap { padding: 68px 16px 32px; }
+  ul.gear { columns: 1; }
+  ul.compare li { grid-template-columns: 1fr 80px 80px; }
+}
